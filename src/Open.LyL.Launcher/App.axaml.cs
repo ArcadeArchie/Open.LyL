@@ -6,6 +6,8 @@ using Microsoft.Extensions.Hosting;
 using Open.LyL.Launcher.ViewModels;
 using Open.LyL.Launcher.Views;
 using System;
+using Serilog;
+using Microsoft.Extensions.Configuration;
 
 namespace Open.LyL.Launcher;
 
@@ -44,14 +46,25 @@ public partial class App : Application
 
 
 
-    static HostApplicationBuilder CreateHostBuilder()
-    {
-        var builder = Host.CreateApplicationBuilder(Environment.GetCommandLineArgs());
+    static IHostBuilder CreateHostBuilder() => Host
+        .CreateDefaultBuilder(Environment.GetCommandLineArgs())
+        .UseSerilog((ctx, svc, cfg) =>
+        {
+            cfg
+            .ReadFrom.Configuration(ctx.Configuration)
+            .ReadFrom.Services(svc)
+            .Enrich.FromLogContext();
+        })
+        .ConfigureAppConfiguration((ctx, cfgBuilder) =>
+        {
+            cfgBuilder
+            .AddJsonFile("appsettings.json", false, true)
+            .AddJsonFile("appsettings.Development.json", true, true);
+        })
+        .ConfigureServices(services =>
+        {
+            services.AddTransient<ViewLocator>();
+            services.AddTransient<MainWindowViewModel>();
+        });
 
-        builder.Services.AddTransient<ViewLocator>();
-        builder.Services.AddTransient<MainWindowViewModel>();
-
-        return builder;
-    }
-        
 }
